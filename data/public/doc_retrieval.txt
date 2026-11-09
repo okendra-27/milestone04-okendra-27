@@ -1,0 +1,3 @@
+An inverted index maps each normalized term to postings that identify chunks containing that term. Term frequency describes repetition inside a chunk, while document frequency counts how many indexed chunks contain the term.
+
+TF-IDF ranking combines local frequency with corpus-wide rarity. A context builder can then spend a fixed token budget on the highest-ranked source chunks.

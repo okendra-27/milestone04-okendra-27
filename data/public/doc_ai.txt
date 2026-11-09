@@ -1,0 +1,3 @@
+AI workspaces organize source documents, prompts, and derived context. Retrieval should preserve where evidence came from so later model requests can remain traceable.
+
+A robust retrieval layer normalizes text consistently, divides long sources into bounded chunks, and ranks those chunks for a user's query.

@@ -1,0 +1,3 @@
+Computer systems depend on explicit invariants. Caches improve locality, synchronization protects shared state, and deterministic APIs make failures easier to reproduce.
+
+A rebuild operation should not leave a partially updated index when validation fails.
