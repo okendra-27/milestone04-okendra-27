@@ -2,7 +2,7 @@
 # You may attempt to use it for building too, by modifying this file here.
 
 cmake_minimum_required(VERSION 3.16)
-project(Milestone4)
+project(Milestone5)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -54,14 +54,14 @@ set (SRCS
     src/ipc_server.cpp
 )
 
-add_executable(ai_workspace_m4 ${SRCS})
+add_executable(ai_workspace_m5 ${SRCS})
 
-target_include_directories(ai_workspace_m4
+target_include_directories(ai_workspace_m5
     PRIVATE
         include
 )
 
-target_link_libraries(ai_workspace_m4 PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Threads::Threads)
+target_link_libraries(ai_workspace_m5 PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Threads::Threads)
 
 if(UNIX)
     add_executable(aiws_send tools/aiws_send.cpp)

@@ -10,6 +10,8 @@
 //For GUI Threads
 #include <thread>
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
 
 class QLabel;
 class QPushButton;
@@ -23,6 +25,10 @@ class ContextWidget;
 class SearchWidget;
 class TermInspectorWidget;
 class WorkspaceWidget;
+class CorpusState;
+class ReadyState;
+class BuildingState;
+class CurrentState;
 
 /**
  * @brief Main application window and coordinator for the M3 AI Workspace GUI.
@@ -158,11 +164,20 @@ private:
      * @brief Uses std::thread and std::atomic to create a workspace version and run the build
      */
 
+    struct BuildRequest {
+        Workspace workspace;
+        int version{0};
+        int generation{0};
+        int delay_ms{0};
+        std::shared_ptr<std::atomic<bool>> cancelled;
+    };
     std::thread build_thread_;
-
-    std::atomic<int> workspace_version_{0};
-
-    std::atomic<bool> build_running_{false};
+    std::mutex worker_mutex_;
+    std::condition_variable worker_condition_;
+    std::unique_ptr<BuildRequest> pending_build_;
+    bool worker_stopping_{false};
+    std::shared_ptr<std::atomic<bool>> active_cancel_;
+    int workspace_version_{0};
 
     int build_delay_ms_{0};
     int build_generation_{0};
@@ -174,10 +189,18 @@ private:
 
     void build_failed(int build_version, int generation);
     void show_build_failure();
+    void worker_loop();
+    void request_build();
+    void cancel_worker_build();
+    void stop_worker();
+    void transition_to(std::unique_ptr<CorpusState> next_state);
+    friend class ::aiws::gui::ReadyState;
+    friend class ::aiws::gui::BuildingState;
+    friend class ::aiws::gui::CurrentState;
 
     Workspace workspace_;
     ProcessingCore processing_core_;
-    bool corpus_current_{false};
+    std::unique_ptr<CorpusState> corpus_state_;
     ExitCallback exit_callback_{nullptr};
 
     WorkspaceWidget* workspace_widget_{nullptr};

@@ -86,6 +86,11 @@ int main(int argc, char** argv) {
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return 1;
     file.write("alpha beta gamma delta");
     file.close();
+    const QString path_two = dir.filePath("second.txt");
+    QFile file_two(path_two);
+    if (!file_two.open(QIODevice::WriteOnly | QIODevice::Text)) return 4;
+    file_two.write("second document");
+    file_two.close();
 
     {
         MainWindow window;
@@ -99,11 +104,6 @@ int main(int argc, char** argv) {
             if (button->text() == "Reset") reset = button;
         }
         if (!build || !reset) return 2;
-        const QString path_two = dir.filePath("second.txt");
-        QFile file_two(path_two);
-        if (!file_two.open(QIODevice::WriteOnly | QIODevice::Text)) return 4;
-        file_two.write("second document");
-        file_two.close();
         build->click();
         failures += wait_for([&]() { return window.build_status() == "Building corpus..."; }, 100);
         failures += !window.add_document_file(path_two);
@@ -117,6 +117,45 @@ int main(int argc, char** argv) {
         failures += window.build_status() != "Ready";
         failures += window.add_document_file(dir.filePath("missing.txt"));
         failures += build->isEnabled();
+    }
+
+    // M5 cancellation: Reset must release the worker for the next request.
+    {
+        MainWindow window;
+        window.set_build_delay_ms(500);
+        failures += !window.add_document_file(path);
+        failures += !window.add_document_file(path_two);
+        QPushButton* build = nullptr;
+        QPushButton* reset = nullptr;
+        for (auto* button : window.findChildren<QPushButton*>()) {
+            if (button->text() == "Build Corpus") build = button;
+            if (button->text() == "Reset") reset = button;
+        }
+        if (!build || !reset) return 5;
+        build->click();
+        failures += wait_for([&]() { return window.build_status() == "Building corpus..."; }, 100);
+        QTimer::singleShot(100, &app, &QCoreApplication::quit);
+        app.exec(); // Give the worker time to take the request before Reset.
+        QElapsedTimer cancel_timer;
+        cancel_timer.start();
+        reset->click();
+        failures += window.build_status() != "Ready";
+        failures += !window.add_document_file(path);
+        build->click();
+        failures += wait_for([&]() {
+            for (auto* label : window.findChildren<QLabel*>())
+                if (label->text().contains("Corpus: 1 chunks")) return true;
+            return false;
+        }, 2200);
+        failures += cancel_timer.elapsed() >= 1250;
+    }
+
+    // Idle shutdown must wake and join the persistent worker promptly.
+    {
+        QElapsedTimer timer;
+        timer.start();
+        { MainWindow window; }
+        failures += timer.elapsed() >= 500;
     }
 
 #ifndef _WIN32
